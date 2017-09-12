@@ -3,6 +3,7 @@ import numpy as np
 import os
 import scipy.misc as misc
 import matplotlib.pyplot as plt
+
 #from visualize import *
 
 
@@ -57,24 +58,24 @@ class NoisyTrainer:
         if self.network.do_generate_manifold_samples:
             sample_visualizer_manifold = ManifoldSampleVisualizer(self.network, self.dataset)
         '''
+
         iteration = 0
         while True:
             iter_time = time.time()
             images = self.dataset.next_batch(self.batch_size)
             noisy_input = self.get_noisy_input(images)
-            train_loss = self.network.train(noisy_input, images)
+            recon_loss, reg_loss = self.network.train(noisy_input, images)
 
             if iteration % 20 == 0:
-                print("Iteration %d: Reconstruction loss %f, time per iter %fs" %
-                      (iteration, train_loss, time.time() - iter_time))
-
+                print("Iteration %d: Reconstruction loss %f, Regularization loss %f, time per iter %fs" %
+                      (iteration, recon_loss, reg_loss, time.time() - iter_time))
+            '''
             if iteration % self.args.vis_frequency == 0:
                 test_error = self.test(iteration//self.args.vis_frequency, 5)
                 print("Reconstruction error @%d per pixel: " % iteration, test_error)
 
                 layers = [layer for layer in self.network.random_latent_code()]
                 layers.sort()
-                '''
                 print("Visualizing %s" % layers)
                 if self.network.do_generate_samples:
                     sample_visualizer.visualize(num_rows=10, use_gui=self.args.use_gui)
@@ -82,8 +83,25 @@ class NoisyTrainer:
                     sample_visualizer_conditional.visualize(layers=layers, num_rows=10, use_gui=self.args.use_gui)
                 if self.network.do_generate_manifold_samples:
                     sample_visualizer_manifold.visualize(layers=layers, num_rows=30, use_gui=self.args.use_gui)
-                '''
+            '''
             iteration += 1
+
+    '''
+    def visualize(self):
+        layers = [layer for layer in self.network.random_latent_code()]
+        layers.sort()
+
+        # Visualization
+        if self.network.do_generate_samples:
+            sample_visualizer = SampleVisualizer(self.network, self.dataset)
+            sample_visualizer.visualize(num_rows=10, use_gui=self.args.use_gui)
+        if self.network.do_generate_conditional_samples:
+            sample_visualizer_conditional = ConditionalSampleVisualizer(self.network, self.dataset)
+            sample_visualizer_conditional.visualize(layers=layers, num_rows=10, use_gui=self.args.use_gui)
+        if self.network.do_generate_manifold_samples:
+            sample_visualizer_manifold = ManifoldSampleVisualizer(self.network, self.dataset)
+            sample_visualizer_manifold.visualize(layers=layers, num_rows=30, use_gui=self.args.use_gui)
+    '''
 
     """ Returns reconstruction error per pixel """
     def test(self, epoch, num_batch=3):
