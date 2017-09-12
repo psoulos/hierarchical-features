@@ -1,0 +1,4 @@
+scipy
+matplotlib
+tensorflow-gpu
+numpy
