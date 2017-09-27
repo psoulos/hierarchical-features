@@ -1,7 +1,6 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-#parser.add_argument('--no_train', type=bool, default=False)
 parser.add_argument('--gpus', type=str, default='')
 parser.add_argument('--netname', type=str, default='')
 parser.add_argument('--batch_size', type=int, default=100)
@@ -15,6 +14,8 @@ parser.add_argument('--use_gui', dest='use_gui', action='store_true',
                     help='Display the results with a GUI window')
 parser.add_argument('--vis_frequency', type=int, default=1000,
                     help='How many train batches before we perform visualization')
+parser.add_argument('--iterations', type=int, default=5000)
+parser.add_argument('--restart', type=bool, default=False)
 args = parser.parse_args()
 
 import matplotlib
@@ -35,7 +36,7 @@ if args.gpus is not '':
 
 dataset = MnistDataset()
 
-model = VLadder(dataset, name=args.netname, reg=args.reg, batch_size=args.batch_size, restart=False)
+model = VLadder(dataset, name=args.netname, reg=args.reg, batch_size=args.batch_size, restart=args.restart)
 trainer = NoisyTrainer(model, dataset, args)
 trainer.train()
 # TODO remove

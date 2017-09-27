@@ -115,6 +115,7 @@ class Network:
     for each network """
     def save_network(self):
         if not self.read_only:
+            print('Saving network')
             # Saver and Summary ops cannot run in GPU
             with tf.device('/cpu:0'):
                 saver = tf.train.Saver()

@@ -1,4 +1,5 @@
+Pillow
 scipy
 matplotlib
-tensorflow==1.2
+tensorflow-gpu==1.2
 numpy

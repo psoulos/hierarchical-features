@@ -116,7 +116,8 @@ class VLadder(Network):
             self.ladder3_placeholder = tf.placeholder(shape=(None, self.ladder3_dim), dtype=tf.float32, name="ladder3")
             self.ladders['ladder3'] = [self.ladder3_placeholder, self.ladder3_dim, self.iladder3_sample]
             tlatent3_state = layers.generative3(None, self.iladder3_sample, is_training=self.is_training)
-            glatent3_state = layers.generative3(None, self.ladder3_placeholder, reuse=True, is_training=False)
+            # TODO: The reused generative layer should have is_training set to False, this is a hack to get around batch norm
+            glatent3_state = layers.generative3(None, self.ladder3_placeholder, reuse=True, is_training=self.is_training)
         else:
             tlatent3_state, glatent3_state = None, None
 
@@ -124,10 +125,12 @@ class VLadder(Network):
             self.ladder2_placeholder = tf.placeholder(shape=(None, self.ladder2_dim), dtype=tf.float32, name="ladder2")
             self.ladders['ladder2'] = [self.ladder2_placeholder, self.ladder2_dim, self.iladder2_sample]
             tlatent2_state = layers.generative2(tlatent3_state, self.iladder2_sample, is_training=self.is_training)
-            glatent2_state = layers.generative2(glatent3_state, self.ladder2_placeholder, reuse=True, is_training=False)
+            # TODO: The reused generative layer should have is_training set to False, this is a hack to get around batch norm
+            glatent2_state = layers.generative2(glatent3_state, self.ladder2_placeholder, reuse=True, is_training=self.is_training)
         elif tlatent3_state is not None:
             tlatent2_state = layers.generative2(tlatent3_state, None, is_training=self.is_training)
-            glatent2_state = layers.generative2(glatent3_state, None, reuse=True, is_training=False)
+            # TODO: The reused generative layer should have is_training set to False, this is a hack to get around batch norm
+            glatent2_state = layers.generative2(glatent3_state, None, reuse=True, is_training=self.is_training)
         else:
             tlatent2_state, glatent2_state = None, None
 
@@ -135,10 +138,12 @@ class VLadder(Network):
             self.ladder1_placeholder = tf.placeholder(shape=(None, self.ladder1_dim), dtype=tf.float32, name="ladder1")
             self.ladders['ladder1'] = [self.ladder1_placeholder, self.ladder1_dim, self.iladder1_sample]
             tlatent1_state = layers.generative1(tlatent2_state, self.iladder1_sample, is_training=self.is_training)
-            glatent1_state = layers.generative1(glatent2_state, self.ladder1_placeholder, reuse=True, is_training=False)
+            # TODO: The reused generative layer should have is_training set to False, this is a hack to get around batch norm
+            glatent1_state = layers.generative1(glatent2_state, self.ladder1_placeholder, reuse=True, is_training=self.is_training)
         elif tlatent2_state is not None:
             tlatent1_state = layers.generative1(tlatent2_state, None, is_training=self.is_training)
-            glatent1_state = layers.generative1(glatent2_state, None, reuse=True, is_training=False)
+            # TODO: The reused generative layer should have is_training set to False, this is a hack to get around batch norm
+            glatent1_state = layers.generative1(glatent2_state, None, reuse=True, is_training=self.is_training)
         else:
             tlatent1_state, glatent1_state = None, None
 
@@ -146,10 +151,12 @@ class VLadder(Network):
             self.ladder0_placeholder = tf.placeholder(shape=(None, self.ladder0_dim), dtype=tf.float32, name="ladder0")
             self.ladders['ladder0'] = [self.ladder0_placeholder, self.ladder0_dim, self.iladder0_sample]
             self.toutput = layers.generative0(tlatent1_state, self.iladder0_sample, is_training=self.is_training)
-            self.goutput = layers.generative0(glatent1_state, self.ladder0_placeholder, reuse=True, is_training=False)
+            # TODO: The reused generative layer should have is_training set to False, this is a hack to get around batch norm
+            self.goutput = layers.generative0(glatent1_state, self.ladder0_placeholder, reuse=True, is_training=self.is_training)
         elif tlatent1_state is not None:
             self.toutput = layers.generative0(tlatent1_state, None, is_training=self.is_training)
-            self.goutput = layers.generative0(glatent1_state, None, reuse=True, is_training=False)
+            # TODO: The reused generative layer should have is_training set to False, this is a hack to get around batch norm
+            self.goutput = layers.generative0(glatent1_state, None, reuse=True, is_training=self.is_training)
         else:
             print("Error: no active ladder")
             exit(0)
@@ -245,20 +252,23 @@ class VLadder(Network):
             batch_size = self.batch_size
         codes = {key: np.random.normal(size=[batch_size, self.ladders[key][1]]) for key in self.ladders}
         feed_dict = {self.ladders[key][0]: codes[key] for key in self.ladders}
-        feed_dict[self.is_training] = False
+        # TODO: setting self.is_training to True is a hack to get around batch norm
+        feed_dict[self.is_training] = True
         output = self.sess.run(self.goutput, feed_dict=feed_dict)
-        return output
+        return output, codes
 
     def generate_manifold_samples(self, external_layer, external_code):
-        codes = {key: np.random.normal(size=[external_code.shape[0], self.ladders[key][1]]) for key in self.ladders}
+        codes = {key: np.random.normal(size=[self.batch_size, self.ladders[key][1]]) for key in self.ladders}
 
         # To avoid breaking batch normalization fixed code must be inserted at random locations
-        # num_insertions = 8
-        # if num_insertions > external_code.shape[0]:
-        #     num_insertions = external_code.shape[0]
-        # random_indexes = np.random.choice(range(self.batch_size), size=num_insertions, replace=False)
-        codes[external_layer] = external_code
+        num_insertions = 8
+        if num_insertions > external_code.shape[0]:
+             num_insertions = external_code.shape[0]
+        random_indexes = np.random.choice(range(self.batch_size), size=num_insertions, replace=False)
+
+        codes[external_layer][random_indexes] = external_code[0:num_insertions]
         feed_dict = {self.ladders[key][0]: codes[key] for key in self.ladders}
-        feed_dict[self.is_training] = False
+        # TODO: setting self.is_training to True is a hack to get around batch norm
+        feed_dict[self.is_training] = True
         output = self.sess.run(self.goutput, feed_dict=feed_dict)
-        return output
+        return output[random_indexes]
