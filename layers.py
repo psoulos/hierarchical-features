@@ -67,7 +67,6 @@ class Layers:
             logits_y = tf.contrib.layers.fully_connected(fc2, num_categories, activation_fn=tf.identity)
             return logits_y
 
-    '''
     def combine_noise(self, latent, ladder, method='gated_add', name="default"):
         if method is 'concat':
             return tf.concat(values=[latent, ladder], axis=len(latent.get_shape())-1)
@@ -78,7 +77,6 @@ class Layers:
                 gate = tf.get_variable("gate", shape=latent.get_shape()[1:], initializer=tf.constant_initializer(0.1))
                 tf.summary.histogram(name + "_noise_gate", gate)
                 return latent + tf.multiply(gate, ladder)
-    '''
 
     def generative0(self, latent1, ladder0=None, reuse=False, is_training=True):
         with tf.variable_scope("generative0") as gs:
@@ -88,7 +86,8 @@ class Layers:
             if ladder0 is not None:
                 ladder0 = fc_bn_lrelu(ladder0, self.network.cs[3])
                 if latent1 is not None:
-                    latent1 = tf.concat(values=[latent1, ladder0], axis=1)
+                    #latent1 = tf.concat(values=[latent1, ladder0], axis=1)
+                    latent1 = self.combine_noise(latent1, ladder0, name="generative0")
                 else:
                     latent1 = ladder0
             elif latent1 is None:
@@ -109,7 +108,8 @@ class Layers:
             if ladder1 is not None:
                 ladder1 = fc_bn_relu(ladder1, self.network.cs[3], is_training)
                 if latent2 is not None:
-                    latent2 = tf.concat(values=[latent2, ladder1], axis=1)
+                    #latent2 = tf.concat(values=[latent2, ladder1], axis=1)
+                    latent2 = self.combine_noise(latent2, ladder1, name="generative1")
                 else:
                     latent2 = ladder1
             elif latent2 is None:

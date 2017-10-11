@@ -200,7 +200,7 @@ class VLadder(Network):
 
         feed_dict.update({
             self.input_placeholder: batch_input,
-            self.reg_coeff: 1 - math.exp(-self.iteration / 15000.0),
+            self.reg_coeff: 1 - math.exp(-self.iteration / 3000.0),
             self.target_placeholder: batch_target,
             self.is_training: True
         })
